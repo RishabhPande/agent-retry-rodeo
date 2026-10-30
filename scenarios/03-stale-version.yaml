@@ -1,0 +1,15 @@
+schema_version: 1
+id: stale-version
+title: Someone moved the goalposts
+description: Another worker changes the ticket before the status update. Can the agent re-read and finish without losing work?
+fault: stale_version
+initial:
+  status: open
+  version: 1
+  comments: [Original ticket note]
+goal:
+  status: resolved
+  comment: Customer notified
+expected:
+  goal_comment_count: 1
+  preserve_existing_comments: true
