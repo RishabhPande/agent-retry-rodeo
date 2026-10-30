@@ -1,0 +1,15 @@
+schema_version: 1
+id: partial-failure
+title: Halfway is not done
+description: The comment succeeds but the status update fails. Will the agent notice the unfinished work?
+fault: partial_failure
+initial:
+  status: open
+  version: 1
+  comments: []
+goal:
+  status: resolved
+  comment: Customer notified
+expected:
+  goal_comment_count: 1
+  preserve_existing_comments: true
