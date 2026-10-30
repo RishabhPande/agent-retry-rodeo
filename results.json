@@ -9,6 +9,12 @@
     "seed": 42,
     "agent": "Naive retry",
     "baseline_type": "scripted, not an LLM",
+    "initial_state": {
+      "status": "open",
+      "version": 1,
+      "comments": []
+    },
+    "error": null,
     "claimed_complete": true,
     "success": false,
     "false_completion": true,
@@ -172,6 +178,12 @@
     "seed": 42,
     "agent": "Verify + recover",
     "baseline_type": "scripted, not an LLM",
+    "initial_state": {
+      "status": "open",
+      "version": 1,
+      "comments": []
+    },
+    "error": null,
     "claimed_complete": true,
     "success": true,
     "false_completion": false,
@@ -352,6 +364,12 @@
     "seed": 42,
     "agent": "Naive retry",
     "baseline_type": "scripted, not an LLM",
+    "initial_state": {
+      "status": "open",
+      "version": 1,
+      "comments": []
+    },
+    "error": null,
     "claimed_complete": true,
     "success": false,
     "false_completion": true,
@@ -481,6 +499,12 @@
     "seed": 42,
     "agent": "Verify + recover",
     "baseline_type": "scripted, not an LLM",
+    "initial_state": {
+      "status": "open",
+      "version": 1,
+      "comments": []
+    },
+    "error": null,
     "claimed_complete": true,
     "success": true,
     "false_completion": false,
@@ -715,6 +739,14 @@
     "seed": 42,
     "agent": "Naive retry",
     "baseline_type": "scripted, not an LLM",
+    "initial_state": {
+      "status": "open",
+      "version": 1,
+      "comments": [
+        "Original ticket note"
+      ]
+    },
+    "error": null,
     "claimed_complete": true,
     "success": false,
     "false_completion": true,
@@ -860,6 +892,14 @@
     "seed": 42,
     "agent": "Verify + recover",
     "baseline_type": "scripted, not an LLM",
+    "initial_state": {
+      "status": "open",
+      "version": 1,
+      "comments": [
+        "Original ticket note"
+      ]
+    },
+    "error": null,
     "claimed_complete": true,
     "success": true,
     "false_completion": false,
