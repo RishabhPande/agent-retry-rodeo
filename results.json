@@ -1,0 +1,1125 @@
+[
+  {
+    "schema_version": 1,
+    "scenario_id": "lost-ack",
+    "scenario_version": 1,
+    "title": "The double tap",
+    "description": "The comment landed. The response did not. Does a retry create a duplicate?",
+    "fault": "lost_ack",
+    "seed": 42,
+    "agent": "Naive retry",
+    "baseline_type": "scripted, not an LLM",
+    "claimed_complete": true,
+    "success": false,
+    "false_completion": true,
+    "duplicate_comments": 1,
+    "uncompleted_steps": 0,
+    "assertions": [
+      {
+        "id": "target_status",
+        "pass": true,
+        "expected": "resolved",
+        "actual": "resolved",
+        "path": "final_state.status"
+      },
+      {
+        "id": "exactly_one_comment",
+        "pass": false,
+        "expected": 1,
+        "actual": 2,
+        "path": "final_state.comments"
+      },
+      {
+        "id": "preserve_comments",
+        "pass": true,
+        "expected": {},
+        "actual": {
+          "Customer notified": 2
+        },
+        "path": "final_state.comments"
+      }
+    ],
+    "events": [
+      {
+        "step": 1,
+        "action": "append_comment",
+        "params": {
+          "text": "Customer notified"
+        },
+        "observation": {
+          "ok": false,
+          "error": "timeout",
+          "committed": "unknown"
+        },
+        "fault": "Write committed; acknowledgement lost",
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": []
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 2,
+        "action": "append_comment",
+        "params": {
+          "text": "Customer notified"
+        },
+        "observation": {
+          "ok": true,
+          "comment_added": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Customer notified",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 3,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Customer notified",
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Customer notified",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Customer notified",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 4,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 3
+        },
+        "observation": {
+          "ok": true,
+          "status_updated": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Customer notified",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "resolved",
+          "version": 4,
+          "comments": [
+            "Customer notified",
+            "Customer notified"
+          ]
+        }
+      }
+    ],
+    "final_state": {
+      "status": "resolved",
+      "version": 4,
+      "comments": [
+        "Customer notified",
+        "Customer notified"
+      ]
+    }
+  },
+  {
+    "schema_version": 1,
+    "scenario_id": "lost-ack",
+    "scenario_version": 1,
+    "title": "The double tap",
+    "description": "The comment landed. The response did not. Does a retry create a duplicate?",
+    "fault": "lost_ack",
+    "seed": 42,
+    "agent": "Verify + recover",
+    "baseline_type": "scripted, not an LLM",
+    "claimed_complete": true,
+    "success": true,
+    "false_completion": false,
+    "duplicate_comments": 0,
+    "uncompleted_steps": 0,
+    "assertions": [
+      {
+        "id": "target_status",
+        "pass": true,
+        "expected": "resolved",
+        "actual": "resolved",
+        "path": "final_state.status"
+      },
+      {
+        "id": "exactly_one_comment",
+        "pass": true,
+        "expected": 1,
+        "actual": 1,
+        "path": "final_state.comments"
+      },
+      {
+        "id": "preserve_comments",
+        "pass": true,
+        "expected": {},
+        "actual": {
+          "Customer notified": 1
+        },
+        "path": "final_state.comments"
+      }
+    ],
+    "events": [
+      {
+        "step": 1,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 1,
+          "comments": []
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": []
+        },
+        "after": {
+          "status": "open",
+          "version": 1,
+          "comments": []
+        }
+      },
+      {
+        "step": 2,
+        "action": "append_comment",
+        "params": {
+          "text": "Customer notified"
+        },
+        "observation": {
+          "ok": false,
+          "error": "timeout",
+          "committed": "unknown"
+        },
+        "fault": "Write committed; acknowledgement lost",
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": []
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 3,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 4,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 2
+        },
+        "observation": {
+          "ok": true,
+          "status_updated": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "resolved",
+          "version": 3,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 5,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "resolved",
+          "version": 3,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "resolved",
+          "version": 3,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "resolved",
+          "version": 3,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      }
+    ],
+    "final_state": {
+      "status": "resolved",
+      "version": 3,
+      "comments": [
+        "Customer notified"
+      ]
+    }
+  },
+  {
+    "schema_version": 1,
+    "scenario_id": "partial-failure",
+    "scenario_version": 1,
+    "title": "Halfway is not done",
+    "description": "The comment succeeds but the status update fails. Will the agent notice the unfinished work?",
+    "fault": "partial_failure",
+    "seed": 42,
+    "agent": "Naive retry",
+    "baseline_type": "scripted, not an LLM",
+    "claimed_complete": true,
+    "success": false,
+    "false_completion": true,
+    "duplicate_comments": 0,
+    "uncompleted_steps": 1,
+    "assertions": [
+      {
+        "id": "target_status",
+        "pass": false,
+        "expected": "resolved",
+        "actual": "open",
+        "path": "final_state.status"
+      },
+      {
+        "id": "exactly_one_comment",
+        "pass": true,
+        "expected": 1,
+        "actual": 1,
+        "path": "final_state.comments"
+      },
+      {
+        "id": "preserve_comments",
+        "pass": true,
+        "expected": {},
+        "actual": {
+          "Customer notified": 1
+        },
+        "path": "final_state.comments"
+      }
+    ],
+    "events": [
+      {
+        "step": 1,
+        "action": "append_comment",
+        "params": {
+          "text": "Customer notified"
+        },
+        "observation": {
+          "ok": true,
+          "comment_added": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": []
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 2,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 3,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 2
+        },
+        "observation": {
+          "ok": false,
+          "error": "service_unavailable"
+        },
+        "fault": "Second step failed before commit",
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      }
+    ],
+    "final_state": {
+      "status": "open",
+      "version": 2,
+      "comments": [
+        "Customer notified"
+      ]
+    }
+  },
+  {
+    "schema_version": 1,
+    "scenario_id": "partial-failure",
+    "scenario_version": 1,
+    "title": "Halfway is not done",
+    "description": "The comment succeeds but the status update fails. Will the agent notice the unfinished work?",
+    "fault": "partial_failure",
+    "seed": 42,
+    "agent": "Verify + recover",
+    "baseline_type": "scripted, not an LLM",
+    "claimed_complete": true,
+    "success": true,
+    "false_completion": false,
+    "duplicate_comments": 0,
+    "uncompleted_steps": 0,
+    "assertions": [
+      {
+        "id": "target_status",
+        "pass": true,
+        "expected": "resolved",
+        "actual": "resolved",
+        "path": "final_state.status"
+      },
+      {
+        "id": "exactly_one_comment",
+        "pass": true,
+        "expected": 1,
+        "actual": 1,
+        "path": "final_state.comments"
+      },
+      {
+        "id": "preserve_comments",
+        "pass": true,
+        "expected": {},
+        "actual": {
+          "Customer notified": 1
+        },
+        "path": "final_state.comments"
+      }
+    ],
+    "events": [
+      {
+        "step": 1,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 1,
+          "comments": []
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": []
+        },
+        "after": {
+          "status": "open",
+          "version": 1,
+          "comments": []
+        }
+      },
+      {
+        "step": 2,
+        "action": "append_comment",
+        "params": {
+          "text": "Customer notified"
+        },
+        "observation": {
+          "ok": true,
+          "comment_added": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": []
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 3,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 4,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 2
+        },
+        "observation": {
+          "ok": false,
+          "error": "service_unavailable"
+        },
+        "fault": "Second step failed before commit",
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 5,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 6,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 2
+        },
+        "observation": {
+          "ok": true,
+          "status_updated": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "resolved",
+          "version": 3,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 7,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "resolved",
+          "version": 3,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "resolved",
+          "version": 3,
+          "comments": [
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "resolved",
+          "version": 3,
+          "comments": [
+            "Customer notified"
+          ]
+        }
+      }
+    ],
+    "final_state": {
+      "status": "resolved",
+      "version": 3,
+      "comments": [
+        "Customer notified"
+      ]
+    }
+  },
+  {
+    "schema_version": 1,
+    "scenario_id": "stale-version",
+    "scenario_version": 1,
+    "title": "Someone moved the goalposts",
+    "description": "Another worker changes the ticket before the status update. Can the agent re-read and finish without losing work?",
+    "fault": "stale_version",
+    "seed": 42,
+    "agent": "Naive retry",
+    "baseline_type": "scripted, not an LLM",
+    "claimed_complete": true,
+    "success": false,
+    "false_completion": true,
+    "duplicate_comments": 0,
+    "uncompleted_steps": 1,
+    "assertions": [
+      {
+        "id": "target_status",
+        "pass": false,
+        "expected": "resolved",
+        "actual": "open",
+        "path": "final_state.status"
+      },
+      {
+        "id": "exactly_one_comment",
+        "pass": true,
+        "expected": 1,
+        "actual": 1,
+        "path": "final_state.comments"
+      },
+      {
+        "id": "preserve_comments",
+        "pass": true,
+        "expected": {
+          "Original ticket note": 1,
+          "INC-2824: another worker inspected this ticket": 1
+        },
+        "actual": {
+          "Original ticket note": 1,
+          "Customer notified": 1,
+          "INC-2824: another worker inspected this ticket": 1
+        },
+        "path": "final_state.comments"
+      }
+    ],
+    "events": [
+      {
+        "step": 1,
+        "action": "append_comment",
+        "params": {
+          "text": "Customer notified"
+        },
+        "observation": {
+          "ok": true,
+          "comment_added": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": [
+            "Original ticket note"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 2,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 3,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 2
+        },
+        "observation": {
+          "ok": false,
+          "error": "version_conflict"
+        },
+        "fault": "Concurrent write changed the ticket version",
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified",
+            "INC-2824: another worker inspected this ticket"
+          ]
+        }
+      }
+    ],
+    "final_state": {
+      "status": "open",
+      "version": 3,
+      "comments": [
+        "Original ticket note",
+        "Customer notified",
+        "INC-2824: another worker inspected this ticket"
+      ]
+    }
+  },
+  {
+    "schema_version": 1,
+    "scenario_id": "stale-version",
+    "scenario_version": 1,
+    "title": "Someone moved the goalposts",
+    "description": "Another worker changes the ticket before the status update. Can the agent re-read and finish without losing work?",
+    "fault": "stale_version",
+    "seed": 42,
+    "agent": "Verify + recover",
+    "baseline_type": "scripted, not an LLM",
+    "claimed_complete": true,
+    "success": true,
+    "false_completion": false,
+    "duplicate_comments": 0,
+    "uncompleted_steps": 0,
+    "assertions": [
+      {
+        "id": "target_status",
+        "pass": true,
+        "expected": "resolved",
+        "actual": "resolved",
+        "path": "final_state.status"
+      },
+      {
+        "id": "exactly_one_comment",
+        "pass": true,
+        "expected": 1,
+        "actual": 1,
+        "path": "final_state.comments"
+      },
+      {
+        "id": "preserve_comments",
+        "pass": true,
+        "expected": {
+          "Original ticket note": 1,
+          "INC-2824: another worker inspected this ticket": 1
+        },
+        "actual": {
+          "Original ticket note": 1,
+          "Customer notified": 1,
+          "INC-2824: another worker inspected this ticket": 1
+        },
+        "path": "final_state.comments"
+      }
+    ],
+    "events": [
+      {
+        "step": 1,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 1,
+          "comments": [
+            "Original ticket note"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": [
+            "Original ticket note"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 1,
+          "comments": [
+            "Original ticket note"
+          ]
+        }
+      },
+      {
+        "step": 2,
+        "action": "append_comment",
+        "params": {
+          "text": "Customer notified"
+        },
+        "observation": {
+          "ok": true,
+          "comment_added": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": [
+            "Original ticket note"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 3,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 4,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 2
+        },
+        "observation": {
+          "ok": false,
+          "error": "version_conflict"
+        },
+        "fault": "Concurrent write changed the ticket version",
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified",
+            "INC-2824: another worker inspected this ticket"
+          ]
+        }
+      },
+      {
+        "step": 5,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified",
+            "INC-2824: another worker inspected this ticket"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified",
+            "INC-2824: another worker inspected this ticket"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified",
+            "INC-2824: another worker inspected this ticket"
+          ]
+        }
+      },
+      {
+        "step": 6,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 3
+        },
+        "observation": {
+          "ok": true,
+          "status_updated": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified",
+            "INC-2824: another worker inspected this ticket"
+          ]
+        },
+        "after": {
+          "status": "resolved",
+          "version": 4,
+          "comments": [
+            "Original ticket note",
+            "Customer notified",
+            "INC-2824: another worker inspected this ticket"
+          ]
+        }
+      },
+      {
+        "step": 7,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "resolved",
+          "version": 4,
+          "comments": [
+            "Original ticket note",
+            "Customer notified",
+            "INC-2824: another worker inspected this ticket"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "resolved",
+          "version": 4,
+          "comments": [
+            "Original ticket note",
+            "Customer notified",
+            "INC-2824: another worker inspected this ticket"
+          ]
+        },
+        "after": {
+          "status": "resolved",
+          "version": 4,
+          "comments": [
+            "Original ticket note",
+            "Customer notified",
+            "INC-2824: another worker inspected this ticket"
+          ]
+        }
+      }
+    ],
+    "final_state": {
+      "status": "resolved",
+      "version": 4,
+      "comments": [
+        "Original ticket note",
+        "Customer notified",
+        "INC-2824: another worker inspected this ticket"
+      ]
+    }
+  }
+]
