@@ -6,6 +6,8 @@ A local test range for AI agent recovery. Watch a naive strategy confidently fai
 
 ![The lost-acknowledgement trap: blind retry duplicates a committed write, while state verification avoids it.](docs/assets/recovery-map.svg)
 
+[Try the public replay](https://rishabhpande.github.io/agent-retry-rodeo/) - six scripted runs, no login or API keys.
+
 **Offline runtime. No API keys. Synthetic data only.** Python 3.10+.
 
 ## Try it in a minute
