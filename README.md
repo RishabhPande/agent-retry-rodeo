@@ -47,9 +47,13 @@ See [the scenario guide](docs/scenarios.md). Adding a new *fault primitive* requ
 
 ## Bring your agent
 
-Implement `name` and `run(call, goal) -> bool`; see [adapter example](docs/adapter_example.py). The callable exposes `read_ticket`, `append_comment`, and version-checked `set_status`. Return whether the agent claims completion. The evaluator owns simulator state and grades exact final-state assertions. Your adapter should never inspect `World`, hidden fault schedules, or the final-state evaluator.
+```sh
+python -m agent_retry_rodeo.cli run --agent examples/my_agent.py --output my-run
+```
 
-The included protocol is an **in-process extension point**, not a security boundary or framework integration. External agents and model providers are not bundled in v0.1. Contributors are responsible for their own model costs; the default demo never uses a paid API.
+Copy `examples/my_agent.py`. Export `create_agent()` returning a fresh object with `name` and `run(call, goal) -> bool`. The agent receives only tool observations and its goal. Its completion claim is checked against persisted simulator state. Custom names and zero-tool-call runs work in the same replay. Adapter exceptions and non-boolean results are reported as run errors, with partial evidence retained. A custom run exits 1 if any case fails, so it can gate CI.
+
+This loads explicitly chosen **trusted local Python code**. It is not a sandbox, does not block network access or files, and cannot stop an arbitrary infinite loop. Do not load strangers' adapters. No model connector or paid calls are included. Model provenance is not inferred from an adapter name.
 
 ## Evidence, not a vibes judge
 
@@ -64,6 +68,10 @@ python -m unittest discover -s tests -v
 ```
 
 ## Architecture
+
+![Workflow from trusted adapter to simulator and independent final-state assertions, followed by an actual synthetic lost-ack trace where the agent claims done but leaves two comments.](docs/assets/evidence-walkthrough.svg)
+
+The trace is generated from the real `lost-ack` fixture at seed 42, not hand-entered benchmark data. Rebuild it with `python scripts/build_readme_visuals.py`. The adapter/evaluator split is a protocol convention, not isolation from trusted Python code.
 
 `YAML fixture → deterministic ticket simulator → agent tool calls → state assertions → JSON + offline HTML replay`
 
@@ -81,13 +89,3 @@ Relevant projects: [MCP Chaos](https://github.com/ajinb/mcp-chaos), [Commit-Time
 ## Contribute
 
 Small, reviewable PRs are welcome: scenarios, accessibility fixes, tests, and adapters. See [CONTRIBUTING.md](CONTRIBUTING.md). MIT licensed; see [LICENSE](LICENSE).
-
-## Test whether your agent actually finished the job
-
-```sh
-python -m agent_retry_rodeo.cli run --agent examples/my_agent.py --output my-run
-```
-
-Copy `examples/my_agent.py`. Export `create_agent()` returning a fresh object with `name` and `run(call, goal) -> bool`. The agent receives only tool observations and its goal. Its completion claim is checked against persisted simulator state. Custom names and zero-tool-call runs work in the same replay. Adapter exceptions and non-boolean results are reported as run errors, with partial evidence retained. A custom run exits 1 if any case fails, so it can gate CI.
-
-This loads explicitly chosen **trusted local Python code**. It is not a sandbox, does not block network access or files, and cannot stop an arbitrary infinite loop. Do not load strangers' adapters. No model connector or paid calls are included. Model provenance is not inferred from an adapter name.

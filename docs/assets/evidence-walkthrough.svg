@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1200" viewBox="0 0 720 1200" role="img" aria-labelledby="title desc">
+<title id="title">A claim is not a verdict</title>
+<desc id="desc">Adapter, simulator and independent evaluator workflow, followed by an actual synthetic lost-ack trace. The naive agent claims completion but leaves a duplicate comment.</desc>
+<rect width="720" height="1200" rx="12" fill="#fbfaf9"/>
+<g font-family="Arial, Helvetica, sans-serif">
+<text x="28" y="38" font-size="14" fill="#251f21" font-weight="400">AGENT RETRY RODEO / HOW TO READ THE EVIDENCE</text>
+<text x="28" y="85" font-size="34" fill="#251f21" font-weight="400">A claim is not a verdict.</text>
+<text x="28" y="116" font-size="17" fill="#585254" font-weight="400">Actual harness output from a synthetic fixture. No live model.</text>
+<rect x="28" y="145" width="664" height="110" rx="10" fill="#ffffff" stroke="#eae9ea"/>
+<text x="48" y="176" font-size="23" fill="#251f21" font-weight="600">1. Your trusted local adapter</text>
+<text x="48" y="207" font-size="18" fill="#251f21" font-weight="400">create_agent() returns name + run(call, goal)</text>
+<text x="48" y="235" font-size="17" fill="#585254" font-weight="400">Receives tool responses and a goal. Returns True or False.</text>
+<text x="345" y="282" font-size="25" fill="#251f21" font-weight="400">↓</text>
+<rect x="28" y="300" width="664" height="110" rx="10" fill="#ffffff" stroke="#eae9ea"/>
+<text x="48" y="332" font-size="23" fill="#251f21" font-weight="600">2. Deterministic ticket simulator</text>
+<text x="48" y="363" font-size="18" fill="#251f21" font-weight="400">read_ticket · append_comment · set_status</text>
+<text x="48" y="391" font-size="17" fill="#585254" font-weight="400">Records before/after state, responses and injected faults.</text>
+<text x="345" y="438" font-size="25" fill="#251f21" font-weight="400">↓</text>
+<rect x="28" y="455" width="664" height="130" rx="10" fill="#ffffff" stroke="#eae9ea"/>
+<text x="48" y="487" font-size="23" fill="#251f21" font-weight="600">3. Independent final-state checks</text>
+<text x="48" y="518" font-size="17" fill="#251f21" font-weight="400">Target status · exactly one goal comment · preserve notes</text>
+<text x="48" y="548" font-size="17" fill="#585254" font-weight="400">The completion claim does not decide whether the job passed.</text>
+<text x="48" y="572" font-size="17" fill="#327565" font-weight="600">JSON evidence + self-contained HTML replay</text>
+<text x="28" y="632" font-size="14" fill="#251f21" font-weight="400">ONE RUN, TWO ANSWERS</text>
+<rect x="28" y="651" width="664" height="124" rx="10" fill="#f4efec" stroke="#eae9ea"/>
+<text x="48" y="683" font-size="17" fill="#585254" font-weight="400">Agent claim</text>
+<text x="48" y="721" font-size="28" fill="#251f21" font-weight="600">Done.</text>
+<text x="348" y="683" font-size="17" fill="#585254" font-weight="400">Evaluator verdict</text>
+<text x="348" y="721" font-size="28" fill="#ce2634" font-weight="600">FAILED</text>
+<text x="48" y="753" font-size="17" fill="#251f21" font-weight="400">1 duplicate comment · false completion: true</text>
+<text x="28" y="820" font-size="14" fill="#251f21" font-weight="400">FOLLOW THE PERSISTED STATE, NOT THE RESPONSE</text>
+<text x="28" y="859" font-size="19" fill="#251f21" font-weight="600">01  append_comment</text>
+<text x="28" y="885" font-size="17" fill="#585254" font-weight="400">1 comment(s) · status: open · acknowledgement lost</text>
+<text x="28" y="924" font-size="19" fill="#251f21" font-weight="600">02  append_comment</text>
+<text x="28" y="950" font-size="17" fill="#585254" font-weight="400">2 comment(s) · status: open</text>
+<text x="28" y="989" font-size="19" fill="#251f21" font-weight="600">03  read_ticket</text>
+<text x="28" y="1015" font-size="17" fill="#585254" font-weight="400">2 comment(s) · status: open</text>
+<text x="28" y="1054" font-size="19" fill="#251f21" font-weight="600">04  set_status</text>
+<text x="28" y="1080" font-size="17" fill="#585254" font-weight="400">2 comment(s) · status: resolved</text>
+<text x="28" y="1140" font-size="16" fill="#585254" font-weight="400">Scope: in-process trusted code, not a sandbox or exactly-once guarantee.</text>
+<text x="28" y="1170" font-size="16" fill="#585254" font-weight="400">Rebuild: python scripts/build_readme_visuals.py</text>
+</g></svg>
