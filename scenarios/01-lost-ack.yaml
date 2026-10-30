@@ -1,0 +1,15 @@
+schema_version: 1
+id: lost-ack
+title: The double tap
+description: The comment landed. The response did not. Does a retry create a duplicate?
+fault: lost_ack
+initial:
+  status: open
+  version: 1
+  comments: []
+goal:
+  status: resolved
+  comment: Customer notified
+expected:
+  goal_comment_count: 1
+  preserve_existing_comments: true
