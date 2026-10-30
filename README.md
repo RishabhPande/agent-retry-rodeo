@@ -81,3 +81,13 @@ Relevant projects: [MCP Chaos](https://github.com/ajinb/mcp-chaos), [Commit-Time
 ## Contribute
 
 Small, reviewable PRs are welcome: scenarios, accessibility fixes, tests, and adapters. See [CONTRIBUTING.md](CONTRIBUTING.md). MIT licensed; see [LICENSE](LICENSE).
+
+## Test whether your agent actually finished the job
+
+```sh
+python -m agent_retry_rodeo.cli run --agent examples/my_agent.py --output my-run
+```
+
+Copy `examples/my_agent.py`. Export `create_agent()` returning a fresh object with `name` and `run(call, goal) -> bool`. The agent receives only tool observations and its goal. Its completion claim is checked against persisted simulator state. Custom names and zero-tool-call runs work in the same replay. Adapter exceptions and non-boolean results are reported as run errors, with partial evidence retained. A custom run exits 1 if any case fails, so it can gate CI.
+
+This loads explicitly chosen **trusted local Python code**. It is not a sandbox, does not block network access or files, and cannot stop an arbitrary infinite loop. Do not load strangers' adapters. No model connector or paid calls are included. Model provenance is not inferred from an adapter name.
