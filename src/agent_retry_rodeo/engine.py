@@ -109,6 +109,7 @@ class Agent(Protocol):
 
 class NaiveAgent:
     name = "Naive retry"
+    kind = "scripted, not an LLM"
     def run(self, call, goal):
         first = call("append_comment", text=goal["comment"])
         if not first.ok:
@@ -119,6 +120,7 @@ class NaiveAgent:
 
 class RecoveryAgent:
     name = "Verify + recover"
+    kind = "scripted, not an LLM"
     def run(self, call, goal):
         for _ in range(6):  # Bound all retries.
             state = call("read_ticket").result
@@ -133,7 +135,14 @@ class RecoveryAgent:
 
 def run(scenario: dict, agent: Agent, seed: int = 42) -> dict:
     world = World(scenario, seed)
-    claimed = agent.run(world.call, copy.deepcopy(scenario["goal"]))
+    error = None
+    try:
+        claimed = agent.run(world.call, copy.deepcopy(scenario["goal"]))
+        if type(claimed) is not bool:
+            raise ValueError("Agent.run must return a boolean completion claim")
+    except Exception as exc:
+        claimed = False
+        error = {"type": type(exc).__name__, "message": str(exc)}
     state, goal = world.state, scenario["goal"]
     count = state["comments"].count(goal["comment"])
     # Preserve both original and externally added comments, including multiplicity.
@@ -148,5 +157,5 @@ def run(scenario: dict, agent: Agent, seed: int = 42) -> dict:
         {"id": "exactly_one_comment", "pass": count == 1, "expected": 1, "actual": count, "path": "final_state.comments"},
         {"id": "preserve_comments", "pass": all(actual[k] >= v for k, v in required.items()), "expected": dict(required), "actual": dict(actual), "path": "final_state.comments"},
     ]
-    success = all(x["pass"] for x in assertions)
-    return {"schema_version": 1, "scenario_id": scenario["id"], "scenario_version": scenario["schema_version"], "title": scenario["title"], "description": scenario["description"], "fault": scenario["fault"], "seed": seed, "agent": agent.name, "baseline_type": "scripted, not an LLM", "claimed_complete": bool(claimed), "success": success, "false_completion": bool(claimed) and not success, "duplicate_comments": max(0, count - 1), "uncompleted_steps": int(state["status"] != goal["status"]) + int(count == 0), "assertions": assertions, "events": world.events, "final_state": copy.deepcopy(state)}
+    success = error is None and all(x["pass"] for x in assertions)
+    return {"schema_version": 1, "scenario_id": scenario["id"], "scenario_version": scenario["schema_version"], "title": scenario["title"], "description": scenario["description"], "fault": scenario["fault"], "seed": seed, "agent": agent.name, "baseline_type": getattr(agent, "kind", "custom local adapter; model provenance not verified"), "initial_state": copy.deepcopy(scenario["initial"]), "error": error, "claimed_complete": bool(claimed), "success": success, "false_completion": bool(claimed) and not success, "duplicate_comments": max(0, count - 1), "uncompleted_steps": int(state["status"] != goal["status"]) + int(count == 0), "assertions": assertions, "events": world.events, "final_state": copy.deepcopy(state)}
