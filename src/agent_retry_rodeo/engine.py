@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Protocol
 import yaml
 
-FAULTS = {"lost_ack", "partial_failure", "stale_version"}
+FAULTS = {"lost_ack", "partial_failure", "stale_version", "invalid_call"}
 FIELDS = {"schema_version", "id", "title", "description", "fault", "initial", "goal", "expected"}
 
 class ScenarioLoader(yaml.SafeLoader):
@@ -81,6 +81,23 @@ class World:
             else:
                 out = Observation(True, {"comment_added": True})
         elif action == "set_status":
+            # invalid_call is a standing workflow rule, not a one-shot fault:
+            # from "open" the tracker only accepts "in-progress". Every direct
+            # jump is rejected with the allowed intermediate step named, and
+            # nothing commits. An agent that ignores the error detail never
+            # completes; one that reads it takes the named step.
+            if fault == "invalid_call":
+                allowed = {"open": {"in-progress"}}.get(self.state["status"])
+                if allowed is not None and params["status"] not in allowed:
+                    via = sorted(allowed)[0]
+                    label = "Rejected invalid transition; allowed step named"
+                    out = Observation(False, {
+                        "error": "invalid_transition",
+                        "detail": f"cannot move {self.state['status']} to {params['status']}; set {via} first",
+                        "via": via,
+                    })
+                    self.events.append({"step": len(self.events) + 1, "action": action, "params": params, "observation": {"ok": out.ok, **out.result}, "fault": label, "before": before, "after": copy.deepcopy(self.state)})
+                    return out
             if fault == "partial_failure" and not self.fault_used:
                 self.fault_used = True
                 label = "Second step failed before commit"
@@ -128,7 +145,13 @@ class RecoveryAgent:
                 call("append_comment", text=goal["comment"])
                 continue
             if state["status"] != goal["status"]:
-                call("set_status", status=goal["status"], expected_version=state["version"])
+                attempt = call("set_status", status=goal["status"], expected_version=state["version"])
+                if not attempt.ok and attempt.result.get("error") == "invalid_transition" and attempt.result.get("via"):
+                    # The rejection names the required intermediate step.
+                    # Re-read, take it, then finish on the next pass.
+                    via = attempt.result["via"]
+                    fresh = call("read_ticket").result
+                    call("set_status", status=via, expected_version=fresh["version"])
                 continue
             return True
         return False
