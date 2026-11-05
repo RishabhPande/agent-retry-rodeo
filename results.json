@@ -1161,5 +1161,486 @@
         "INC-2824: another worker inspected this ticket"
       ]
     }
+  },
+  {
+    "schema_version": 1,
+    "scenario_id": "error-blind-retry",
+    "scenario_version": 1,
+    "title": "The rejection says how to fix it",
+    "description": "The tracker rejects a direct status jump as an invalid transition and names the allowed intermediate step. An agent that ignores the error detail reports done with the work unfinished.",
+    "fault": "invalid_call",
+    "seed": 42,
+    "agent": "Naive retry",
+    "baseline_type": "scripted, not an LLM",
+    "initial_state": {
+      "status": "open",
+      "version": 1,
+      "comments": [
+        "Original ticket note"
+      ]
+    },
+    "error": null,
+    "claimed_complete": true,
+    "success": false,
+    "false_completion": true,
+    "duplicate_comments": 0,
+    "uncompleted_steps": 1,
+    "assertions": [
+      {
+        "id": "target_status",
+        "pass": false,
+        "expected": "resolved",
+        "actual": "open",
+        "path": "final_state.status"
+      },
+      {
+        "id": "exactly_one_comment",
+        "pass": true,
+        "expected": 1,
+        "actual": 1,
+        "path": "final_state.comments"
+      },
+      {
+        "id": "preserve_comments",
+        "pass": true,
+        "expected": {
+          "Original ticket note": 1
+        },
+        "actual": {
+          "Original ticket note": 1,
+          "Customer notified": 1
+        },
+        "path": "final_state.comments"
+      }
+    ],
+    "events": [
+      {
+        "step": 1,
+        "action": "append_comment",
+        "params": {
+          "text": "Customer notified"
+        },
+        "observation": {
+          "ok": true,
+          "comment_added": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": [
+            "Original ticket note"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 2,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 3,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 2
+        },
+        "observation": {
+          "ok": false,
+          "error": "invalid_transition",
+          "detail": "cannot move open to resolved; set in-progress first",
+          "via": "in-progress"
+        },
+        "fault": "Rejected invalid transition; allowed step named",
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      }
+    ],
+    "final_state": {
+      "status": "open",
+      "version": 2,
+      "comments": [
+        "Original ticket note",
+        "Customer notified"
+      ]
+    }
+  },
+  {
+    "schema_version": 1,
+    "scenario_id": "error-blind-retry",
+    "scenario_version": 1,
+    "title": "The rejection says how to fix it",
+    "description": "The tracker rejects a direct status jump as an invalid transition and names the allowed intermediate step. An agent that ignores the error detail reports done with the work unfinished.",
+    "fault": "invalid_call",
+    "seed": 42,
+    "agent": "Verify + recover",
+    "baseline_type": "scripted, not an LLM",
+    "initial_state": {
+      "status": "open",
+      "version": 1,
+      "comments": [
+        "Original ticket note"
+      ]
+    },
+    "error": null,
+    "claimed_complete": true,
+    "success": true,
+    "false_completion": false,
+    "duplicate_comments": 0,
+    "uncompleted_steps": 0,
+    "assertions": [
+      {
+        "id": "target_status",
+        "pass": true,
+        "expected": "resolved",
+        "actual": "resolved",
+        "path": "final_state.status"
+      },
+      {
+        "id": "exactly_one_comment",
+        "pass": true,
+        "expected": 1,
+        "actual": 1,
+        "path": "final_state.comments"
+      },
+      {
+        "id": "preserve_comments",
+        "pass": true,
+        "expected": {
+          "Original ticket note": 1
+        },
+        "actual": {
+          "Original ticket note": 1,
+          "Customer notified": 1
+        },
+        "path": "final_state.comments"
+      }
+    ],
+    "events": [
+      {
+        "step": 1,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 1,
+          "comments": [
+            "Original ticket note"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": [
+            "Original ticket note"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 1,
+          "comments": [
+            "Original ticket note"
+          ]
+        }
+      },
+      {
+        "step": 2,
+        "action": "append_comment",
+        "params": {
+          "text": "Customer notified"
+        },
+        "observation": {
+          "ok": true,
+          "comment_added": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 1,
+          "comments": [
+            "Original ticket note"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 3,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 4,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 2
+        },
+        "observation": {
+          "ok": false,
+          "error": "invalid_transition",
+          "detail": "cannot move open to resolved; set in-progress first",
+          "via": "in-progress"
+        },
+        "fault": "Rejected invalid transition; allowed step named",
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 5,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 6,
+        "action": "set_status",
+        "params": {
+          "status": "in-progress",
+          "expected_version": 2
+        },
+        "observation": {
+          "ok": true,
+          "status_updated": true
+        },
+        "fault": null,
+        "before": {
+          "status": "open",
+          "version": 2,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "in-progress",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 7,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "in-progress",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "in-progress",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "in-progress",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 8,
+        "action": "set_status",
+        "params": {
+          "status": "resolved",
+          "expected_version": 3
+        },
+        "observation": {
+          "ok": true,
+          "status_updated": true
+        },
+        "fault": null,
+        "before": {
+          "status": "in-progress",
+          "version": 3,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "resolved",
+          "version": 4,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      },
+      {
+        "step": 9,
+        "action": "read_ticket",
+        "params": {},
+        "observation": {
+          "ok": true,
+          "status": "resolved",
+          "version": 4,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "fault": null,
+        "before": {
+          "status": "resolved",
+          "version": 4,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        },
+        "after": {
+          "status": "resolved",
+          "version": 4,
+          "comments": [
+            "Original ticket note",
+            "Customer notified"
+          ]
+        }
+      }
+    ],
+    "final_state": {
+      "status": "resolved",
+      "version": 4,
+      "comments": [
+        "Original ticket note",
+        "Customer notified"
+      ]
+    }
   }
 ]
