@@ -1,0 +1,15 @@
+schema_version: 1
+id: error-blind-retry
+title: The rejection says how to fix it
+description: The tracker rejects a direct status jump as an invalid transition and names the allowed intermediate step. An agent that ignores the error detail reports done with the work unfinished.
+fault: invalid_call
+initial:
+  status: open
+  version: 1
+  comments: [Original ticket note]
+goal:
+  status: resolved
+  comment: Customer notified
+expected:
+  goal_comment_count: 1
+  preserve_existing_comments: true
