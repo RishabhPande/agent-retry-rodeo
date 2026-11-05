@@ -10,11 +10,12 @@ Copy `scenarios/01-lost-ack.yaml`. Required top-level fields are exactly:
 - `goal`: nonempty `status` and `comment` text. The goal comment must not exist initially.
 - `expected`: exactly `goal_comment_count: 1` and `preserve_existing_comments: true`.
 
-Each fault fires once, at a fixed tool boundary:
+The first three faults fire once, at a fixed tool boundary; `invalid_call` is a standing workflow rule that rejects every violating call:
 
 - `lost_ack`: first append commits but returns timeout with unknown commit status.
 - `partial_failure`: first status update returns unavailable before mutation.
 - `stale_version`: first status update receives a concurrent comment/version bump, then fails its version check.
+- `invalid_call`: from `open`, only the `in-progress` transition is accepted. Every direct jump is rejected with the allowed step named in the `via` field, and the rejected call commits nothing.
 
 The evaluator requires the target status, exactly one target comment, and preservation of original/external comments with multiplicity. It checks persisted state, not agent claims. Assertions include expected and actual values and a state path in exported JSON.
 

@@ -15,5 +15,5 @@ class SiteBuildTests(unittest.TestCase):
             output = Path(folder)
             self.assertEqual({p.name for p in output.iterdir()}, {'index.html', 'results.json', '.nojekyll'})
             self.assertEqual(json.loads((output / 'results.json').read_text()), runs)
-            self.assertEqual(len(runs), 6)
+            self.assertEqual(len(runs), 8)
             self.assertIn('not LLM benchmark scores', (output / 'index.html').read_text())

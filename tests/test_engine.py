@@ -29,6 +29,22 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(event["observation"]["ok"])
         self.assertEqual(len(event["after"]["comments"]), 1)
         self.assertEqual(result["duplicate_comments"], 1)
+    def test_invalid_call_rejects_without_committing(self):
+        scenario = next(s for s in self.scenarios() if s["fault"] == "invalid_call")
+        result = run(scenario, NaiveAgent())
+        rejections = [e for e in result["events"] if e["observation"].get("error") == "invalid_transition"]
+        self.assertTrue(rejections)
+        for event in rejections:
+            self.assertEqual(event["before"], event["after"])  # rejected calls commit nothing
+        self.assertEqual(result["final_state"]["status"], "open")
+        self.assertTrue(result["false_completion"])
+    def test_invalid_call_recovery_takes_named_step(self):
+        scenario = next(s for s in self.scenarios() if s["fault"] == "invalid_call")
+        result = run(scenario, RecoveryAgent())
+        self.assertTrue(result["success"])
+        committed = [e["params"].get("status") for e in result["events"]
+                     if e["action"] == "set_status" and e["observation"]["ok"]]
+        self.assertEqual(committed, ["in-progress", "resolved"])
     def test_other_work_preserved(self):
         scenario = next(s for s in self.scenarios() if s["fault"] == "stale_version")
         result = run(scenario, RecoveryAgent())

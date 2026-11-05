@@ -160,13 +160,13 @@ class CliContracts(unittest.TestCase):
     def invoke(self, *args):
         return subprocess.run([sys.executable, '-m', 'agent_retry_rodeo.cli', *map(str, args)], cwd=ROOT, capture_output=True, text=True)
 
-    def test_demo_exports_six_runs_and_replay(self):
+    def test_demo_exports_all_runs_and_replay(self):
         with tempfile.TemporaryDirectory() as folder:
             result = self.invoke('demo', '--output', folder)
             self.assertEqual(result.returncode, 0, result.stderr)
             runs = json.loads((Path(folder) / 'results.json').read_text())
-            self.assertEqual(len(runs), 6)
-            self.assertEqual(sum(r['success'] for r in runs), 3)
+            self.assertEqual(len(runs), 8)
+            self.assertEqual(sum(r['success'] for r in runs), 4)
             self.assertIn('scripted baselines', result.stdout)
             self.assertIn('<!doctype html>', (Path(folder) / 'index.html').read_text())
 
