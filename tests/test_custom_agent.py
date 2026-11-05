@@ -52,7 +52,7 @@ class CustomAgentTests(unittest.TestCase):
             result=subprocess.run([sys.executable,'-m','agent_retry_rodeo.cli','run','--agent','examples/my_agent.py','--output',d],cwd=ROOT,capture_output=True,text=True)
             self.assertEqual(result.returncode,0,result.stderr)
             runs=json.loads((Path(d)/'results.json').read_text())
-            self.assertEqual(len(runs),3)
+            self.assertEqual(len(runs),4)
             self.assertTrue(all(r['success'] for r in runs))
             self.assertTrue(all(r['agent']=='My local recovery agent' for r in runs))
     def test_noop_cli_fails_with_usable_report(self):
