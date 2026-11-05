@@ -6,7 +6,7 @@ A local test range for AI agent recovery. Watch a naive strategy confidently fai
 
 ![The lost-acknowledgement trap: blind retry duplicates a committed write, while state verification avoids it.](docs/assets/recovery-map.svg)
 
-[Try the public replay](https://rishabhpande.github.io/agent-retry-rodeo/) - six scripted runs, no login or API keys.
+[Try the public replay](https://rishabhpande.github.io/agent-retry-rodeo/) - eight scripted runs, no login or API keys.
 
 **Offline runtime. No API keys. Synthetic data only.** Python 3.10+.
 
@@ -25,20 +25,21 @@ Open `rodeo-output/index.html` in your browser. It is self-contained: no server,
 
 Compare strategies, scrub through tool calls, inspect persisted state, and export each run as JSON. The replay labels **final-run verdicts** separately from the selected state snapshot.
 
-## Three ways to fail
+## Four ways to fail
 
 | Scenario | What goes wrong | What the recovery baseline does |
 | --- | --- | --- |
 | The double tap | A comment commits, then the acknowledgement times out. Blind retry duplicates it. | Reads state before retrying a write. |
 | Halfway is not done | The comment lands, but the status update fails. | Checks all task conditions and retries the missing step. |
 | Someone moved the goalposts | A concurrent write changes the version between read and update. | Re-reads the version, preserving the other worker's note. |
+| The rejection says how to fix it | A direct status jump is rejected as an invalid transition, with the allowed step named in the error. The naive run ignores the error detail and reports done with the work unfinished. | Reads the rejection, takes the named intermediate step, then completes. |
 
-Both built-in agents are **scripted teaching baselines, not LLMs**. A six-run demo is not an empirical agent benchmark. The naive baseline intentionally ignores an update failure. The recovery baseline is tailored to these scenarios and is not a general exactly-once guarantee. Content matching is not an idempotency solution for production systems with legitimate repeated comments or concurrent writers.
+Both built-in agents are **scripted teaching baselines, not LLMs**. An eight-run demo is not an empirical agent benchmark. The naive baseline intentionally ignores an update failure. The recovery baseline is tailored to these scenarios and is not a general exactly-once guarantee. Content matching is not an idempotency solution for production systems with legitimate repeated comments or concurrent writers.
 
 ## Add a scenario without changing the engine
 
 1. Copy a YAML file from `scenarios/` and give it a unique `id`.
-2. Use one of `lost_ack`, `partial_failure`, or `stale_version`.
+2. Use one of `lost_ack`, `partial_failure`, `stale_version`, or `invalid_call`.
 3. Set initial ticket state and the target status/comment. Keep the documented assertions.
 4. Run `retry-rodeo validate` and `python -m unittest discover -s tests -v`.
 5. Run `retry-rodeo demo` and inspect the evidence. Open a PR with the scenario and an explanation.
