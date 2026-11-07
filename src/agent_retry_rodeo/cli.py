@@ -6,15 +6,31 @@ import yaml
 from pathlib import Path
 from .engine import load_scenario, run, NaiveAgent, RecoveryAgent
 from .report import render
+from .compare import compare, load_runs
 
 def main():
     parser = argparse.ArgumentParser(description="Run local synthetic recovery scenarios. No network or API keys.")
-    parser.add_argument("command", choices=["demo", "validate", "run"])
+    parser.add_argument("command", choices=["demo", "validate", "run", "compare"])
     parser.add_argument("--scenarios", type=Path, default=Path("scenarios"), help="Scenario folder, relative to current directory")
     parser.add_argument("--output", type=Path, default=Path("rodeo-output"))
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--agent", type=Path, help="Trusted local Python file exporting create_agent(); executes arbitrary code")
+    parser.add_argument("--baseline", type=Path, help="Saved single-adapter results.json")
+    parser.add_argument("--candidate", type=Path, help="Matching candidate results.json")
     args = parser.parse_args()
+    if args.command == "compare":
+        if args.baseline is None or args.candidate is None or args.agent is not None:
+            parser.error("compare requires --baseline and --candidate, and does not load --agent")
+        try:
+            comparison = compare(load_runs(args.baseline), load_runs(args.candidate))
+        except (ValueError, OSError) as exc:
+            parser.error(f"Cannot compare reports: {exc}")
+        print(json.dumps(comparison, indent=2))
+        if comparison["regressed"]:
+            raise SystemExit(1)
+        return
+    if args.baseline is not None or args.candidate is not None:
+        parser.error("--baseline and --candidate are only supported with compare")
     if args.command == "run" and args.agent is None:
         parser.error("run requires --agent path/to/agent.py")
     if args.command != "run" and args.agent is not None:
