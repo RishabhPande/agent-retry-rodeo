@@ -1,6 +1,8 @@
 """A deliberately small, state-grounded simulator, not a production agent runtime."""
 from __future__ import annotations
 import copy
+import hashlib
+import json
 import random
 from dataclasses import dataclass
 from pathlib import Path
@@ -181,4 +183,4 @@ def run(scenario: dict, agent: Agent, seed: int = 42) -> dict:
         {"id": "preserve_comments", "pass": all(actual[k] >= v for k, v in required.items()), "expected": dict(required), "actual": dict(actual), "path": "final_state.comments"},
     ]
     success = error is None and all(x["pass"] for x in assertions)
-    return {"schema_version": 1, "scenario_id": scenario["id"], "scenario_version": scenario["schema_version"], "title": scenario["title"], "description": scenario["description"], "fault": scenario["fault"], "seed": seed, "agent": agent.name, "baseline_type": getattr(agent, "kind", "custom local adapter; model provenance not verified"), "initial_state": copy.deepcopy(scenario["initial"]), "error": error, "claimed_complete": bool(claimed), "success": success, "false_completion": bool(claimed) and not success, "duplicate_comments": max(0, count - 1), "uncompleted_steps": int(state["status"] != goal["status"]) + int(count == 0), "assertions": assertions, "events": world.events, "final_state": copy.deepcopy(state)}
+    return {"schema_version": 1, "scenario_id": scenario["id"], "scenario_sha256": hashlib.sha256(json.dumps(scenario, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(), "scenario_version": scenario["schema_version"], "title": scenario["title"], "description": scenario["description"], "fault": scenario["fault"], "seed": seed, "agent": agent.name, "baseline_type": getattr(agent, "kind", "custom local adapter; model provenance not verified"), "initial_state": copy.deepcopy(scenario["initial"]), "error": error, "claimed_complete": bool(claimed), "success": success, "false_completion": bool(claimed) and not success, "duplicate_comments": max(0, count - 1), "uncompleted_steps": int(state["status"] != goal["status"]) + int(count == 0), "assertions": assertions, "events": world.events, "final_state": copy.deepcopy(state)}
