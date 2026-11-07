@@ -79,7 +79,9 @@ and seed, not adapter name. A SHA-256 fingerprint of the full parsed scenario
 prevents a changed goal or fixture from passing as the same case merely because
 its ID/version stayed unchanged. Missing/added cases, duplicate case keys,
 changed seeds, older reports without fingerprints, and multi-adapter `demo`
-reports are rejected. Regenerate old reports with this version.
+reports are rejected. Duplicate JSON keys (including nested objects) and non-standard
+`NaN`/`Infinity` numbers are rejected before comparison rather than silently
+choosing one conflicting value. Regenerate old reports with this version.
 
 The command only reads JSON and prints JSON; it does not load adapters, run
 scenarios, create a replay, or use the network. Fingerprints are not signatures:
