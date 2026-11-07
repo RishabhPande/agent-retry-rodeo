@@ -5,8 +5,27 @@ from pathlib import Path
 import re
 
 
+def _unique_object(pairs: list) -> dict:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"Duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def _reject_constant(value: str):
+    raise ValueError(f"Non-standard JSON number: {value}")
+
+
 def load_runs(path: Path) -> list:
-    return json.loads(path.read_text(encoding="utf-8"))
+    """Reject ambiguous JSON before looking at run metrics.
+
+    This is format validation, not authentication of a saved report.
+    """
+    return json.loads(path.read_text(encoding="utf-8"),
+                      object_pairs_hook=_unique_object,
+                      parse_constant=_reject_constant)
 
 
 def _index(runs: list) -> dict:
