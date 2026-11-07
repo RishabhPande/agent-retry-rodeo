@@ -5,7 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from agent_retry_rodeo.compare import compare
+from agent_retry_rodeo.compare import compare, load_runs
 from agent_retry_rodeo.engine import load_scenario, run, RecoveryAgent, NaiveAgent
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -97,3 +97,51 @@ class ComparisonTests(unittest.TestCase):
                                    '--scenarios', str(Path(folder) / 'missing')],
                                   cwd=ROOT, capture_output=True, text=True)
             self.assertEqual(proc.returncode, 0, proc.stderr)
+
+
+class ReportJSONTests(unittest.TestCase):
+    def test_duplicate_keys_rejected_even_when_last_value_would_pass(self):
+        good = run(load_scenario(ROOT / 'scenarios/01-lost-ack.yaml'), RecoveryAgent())
+        clean = json.dumps([good])
+        ambiguous = clean.replace('"success": true', '"success": false, "success": true')
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'report.json'
+            for data in (ambiguous, clean.replace('"error": null',
+                         '"error": {"type": "First", "type": "Second"}')):
+                path.write_text(data, encoding='utf-8')
+                with self.subTest(data=data), self.assertRaisesRegex(ValueError, 'Duplicate JSON key'):
+                    load_runs(path)
+            path.write_text(clean, encoding='utf-8')
+            self.assertEqual(load_runs(path), [good])
+
+    def test_nonstandard_numbers_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'report.json'
+            for value in ('NaN', 'Infinity', '-Infinity'):
+                path.write_text('[{"extra": ' + value + '}]', encoding='utf-8')
+                with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'Non-standard JSON number'):
+                    load_runs(path)
+
+    def test_cli_rejects_ambiguous_either_side_without_traceback_or_output(self):
+        good = run(load_scenario(ROOT / 'scenarios/01-lost-ack.yaml'), RecoveryAgent())
+        with tempfile.TemporaryDirectory() as folder:
+            baseline = Path(folder) / 'baseline.json'
+            candidate = Path(folder) / 'candidate.json'
+            clean = json.dumps([good])
+            for side in (baseline, candidate):
+                for malformed in (clean.replace('"success": true',
+                                  '"success": false, "success": true'), '[NaN]', '{', None):
+                    baseline.write_text(clean, encoding='utf-8')
+                    candidate.write_text(clean, encoding='utf-8')
+                    if malformed is None:
+                        side.write_bytes(b'\xff')
+                    else:
+                        side.write_text(malformed, encoding='utf-8')
+                    proc = subprocess.run([sys.executable, '-m', 'agent_retry_rodeo.cli', 'compare',
+                                           '--baseline', str(baseline), '--candidate', str(candidate)],
+                                          cwd=ROOT, capture_output=True, text=True)
+                    with self.subTest(side=side.name, malformed=malformed):
+                        self.assertEqual(proc.returncode, 2)
+                        self.assertEqual(proc.stdout, '')
+                        self.assertIn('Cannot compare reports:', proc.stderr)
+                        self.assertNotIn('Traceback', proc.stderr)
