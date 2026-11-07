@@ -56,6 +56,38 @@ Copy `examples/my_agent.py`. Export `create_agent()` returning a fresh object wi
 
 This loads explicitly chosen **trusted local Python code**. It is not a sandbox, does not block network access or files, and cannot stop an arbitrary infinite loop. Do not load strangers' adapters. No model connector or paid calls are included. Model provenance is not inferred from an adapter name.
 
+## Catch adapter regressions before a PR
+
+Save a run from your current adapter, edit the adapter, then compare the two
+single-adapter reports against the same fixtures and seed:
+
+```bash
+retry-rodeo run --agent examples/my_agent.py --seed 42 --output before
+# Make your adapter change, keeping the scenario pack unchanged.
+retry-rodeo run --agent examples/my_agent.py --seed 42 --output after
+retry-rodeo compare --baseline before/results.json --candidate after/results.json > comparison.json
+```
+
+`compare` exits **0** for no directional regressions, **1** for regressions, and
+**2** for invalid or incomparable reports. A failing `run` still writes its
+report; CI scripts must preserve that report before comparing. A zero comparison
+exit does not mean every case passed: an unchanged failure is not a regression.
+
+Checks cover lost success, new false completion, new adapter errors, increased
+duplicate comments, and increased unfinished steps. Cases match by scenario ID
+and seed, not adapter name. A SHA-256 fingerprint of the full parsed scenario
+prevents a changed goal or fixture from passing as the same case merely because
+its ID/version stayed unchanged. Missing/added cases, duplicate case keys,
+changed seeds, older reports without fingerprints, and multi-adapter `demo`
+reports are rejected. Regenerate old reports with this version.
+
+The command only reads JSON and prints JSON; it does not load adapters, run
+scenarios, create a replay, or use the network. Fingerprints are not signatures:
+hand-edited reports can lie, and simulator/runner changes also require a fresh
+baseline. These are directional checks on synthetic fixtures, not proof of
+production reliability, model provenance, or statistical improvement. Tool-call
+count is intentionally not scored; extra verification calls can be correct.
+
 ## Evidence, not a vibes judge
 
 `rodeo-output/results.json` records each action, response, before/after state, injected fault, seed, scenario version, and assertion. It includes duplicates, unfinished steps, and false completion. A false completion means the agent says done but one or more required final-state assertions fail. No LLM judge decides pass/fail.
