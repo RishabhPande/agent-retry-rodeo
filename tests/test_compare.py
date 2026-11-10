@@ -122,6 +122,16 @@ class ReportJSONTests(unittest.TestCase):
                 with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'Non-standard JSON number'):
                     load_runs(path)
 
+    def test_numeric_overflow_rejected_and_finite_numbers_preserved(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'report.json'
+            for number in ('1e999', '-1e999', '9.9e9999'):
+                path.write_text('[{"extra": {"number": ' + number + '}}]', encoding='utf-8')
+                with self.subTest(number=number), self.assertRaisesRegex(ValueError, 'finite float range'):
+                    load_runs(path)
+            path.write_text('[{"extra": [1.5, -2.25, 1e100, 0.0]}]', encoding='utf-8')
+            self.assertEqual(load_runs(path), [{"extra": [1.5, -2.25, 1e100, 0.0]}])
+
     def test_cli_rejects_ambiguous_either_side_without_traceback_or_output(self):
         good = run(load_scenario(ROOT / 'scenarios/01-lost-ack.yaml'), RecoveryAgent())
         with tempfile.TemporaryDirectory() as folder:
@@ -130,7 +140,7 @@ class ReportJSONTests(unittest.TestCase):
             clean = json.dumps([good])
             for side in (baseline, candidate):
                 for malformed in (clean.replace('"success": true',
-                                  '"success": false, "success": true'), '[NaN]', '{', None):
+                                  '"success": false, "success": true'), '[NaN]', '[1e999]', '[-1e999]', '{', None):
                     baseline.write_text(clean, encoding='utf-8')
                     candidate.write_text(clean, encoding='utf-8')
                     if malformed is None:
