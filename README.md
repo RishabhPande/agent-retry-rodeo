@@ -79,7 +79,7 @@ and seed, not adapter name. A SHA-256 fingerprint of the full parsed scenario
 prevents a changed goal or fixture from passing as the same case merely because
 its ID/version stayed unchanged. Missing/added cases, duplicate case keys,
 changed seeds, older reports without fingerprints, and multi-adapter `demo`
-reports are rejected. Duplicate JSON keys (including nested objects) and non-standard
+reports are rejected. Numeric overflow to infinity is rejected, including in nested metadata. Duplicate JSON keys (including nested objects) and non-standard
 `NaN`/`Infinity` numbers are rejected before comparison rather than silently
 choosing one conflicting value. Regenerate old reports with this version.
 
