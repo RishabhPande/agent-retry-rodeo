@@ -14,10 +14,15 @@ def main():
     parser.add_argument("--scenarios", type=Path, default=Path("scenarios"), help="Scenario folder, relative to current directory")
     parser.add_argument("--output", type=Path, default=Path("rodeo-output"))
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--max-tool-calls", type=int, default=None,
+                        help="Positive per-run tool-call budget for run (default: 100); not a timeout or sandbox")
     parser.add_argument("--agent", type=Path, help="Trusted local Python file exporting create_agent(); executes arbitrary code")
     parser.add_argument("--baseline", type=Path, help="Saved single-adapter results.json")
     parser.add_argument("--candidate", type=Path, help="Matching candidate results.json")
     args = parser.parse_args()
+    if args.max_tool_calls is not None:
+        if args.command != "run" or args.max_tool_calls < 1:
+            parser.error("--max-tool-calls requires run and a positive integer")
     if args.command == "compare":
         if args.baseline is None or args.candidate is None or args.agent is not None:
             parser.error("compare requires --baseline and --candidate, and does not load --agent")
@@ -72,7 +77,7 @@ def main():
         for agent in agents:
             if not isinstance(getattr(agent, "name", None), str) or not agent.name.strip() or not callable(getattr(agent, "run", None)):
                 parser.error("create_agent() must return an agent with a nonempty name and run(call, goal)")
-            results.append(run(scenario, agent, args.seed))
+            results.append(run(scenario, agent, args.seed, max_tool_calls=args.max_tool_calls or 100))
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
     (args.output / "index.html").write_text(render(results), encoding="utf-8")
