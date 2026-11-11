@@ -68,6 +68,13 @@ class World:
         self.incident = f"INC-{random.Random(seed).randrange(1000, 9999)}"
 
     def call(self, action: str, **params) -> Observation:
+        # Reject malformed state values before a write or a one-shot fault.
+        # Otherwise a list/dict comment can crash final-state scoring outside
+        # the adapter exception boundary, leaving no usable run report.
+        if action == "append_comment" and not isinstance(params.get("text"), str):
+            raise ValueError("append_comment requires text to be a string")
+        if action == "set_status" and not isinstance(params.get("status"), str):
+            raise ValueError("set_status requires status to be a string")
         before = copy.deepcopy(self.state)
         fault = self.scenario["fault"]
         label = None
