@@ -56,6 +56,26 @@ Copy `examples/my_agent.py`. Export `create_agent()` returning a fresh object wi
 
 This loads explicitly chosen **trusted local Python code**. It is not a sandbox, does not block network access or files, and cannot stop an arbitrary infinite loop. Do not load strangers' adapters. No model connector or paid calls are included. Model provenance is not inferred from an adapter name.
 
+### Bound tool retries
+
+Custom runs default to at most 100 simulator tool calls per scenario. Set a smaller
+or larger positive budget when testing an adapter's retry behavior:
+
+```bash
+retry-rodeo run --agent examples/my_agent.py --max-tool-calls 20 --output bounded-run
+```
+
+The next call after the budget raises `ToolCallLimitError` before changing state.
+The failed run still exports its partial replay and JSON evidence, including
+`tool_calls` and `max_tool_calls`. Catching the exception in an adapter cannot turn
+that run into a pass. A run that finishes on its last allowed call can still pass.
+Invalid tool calls also consume budget.
+
+This bounds calls into the simulator, not Python execution time, memory, network
+access, or code running between calls. A trusted adapter that hangs without calling
+a tool, or catches the exception and loops forever, still needs an external process
+timeout. This is not a sandbox or a wall-clock timeout.
+
 ## Catch adapter regressions before a PR
 
 Save a run from your current adapter, edit the adapter, then compare the two
