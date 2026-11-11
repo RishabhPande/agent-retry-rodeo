@@ -54,13 +54,22 @@ def load_scenario(path: Path) -> dict:
         raise ValueError("Expected assertions must require exactly one goal comment and preservation")
     return data
 
+class ToolCallLimitError(RuntimeError):
+    """The adapter exhausted its synthetic tool-call budget."""
+
+
 @dataclass(frozen=True)
 class Observation:
     ok: bool
     result: dict
 
 class World:
-    def __init__(self, scenario: dict, seed: int):
+    def __init__(self, scenario: dict, seed: int, max_tool_calls: int = 100):
+        if type(max_tool_calls) is not int or max_tool_calls < 1:
+            raise ValueError("max_tool_calls must be a positive integer")
+        self.max_tool_calls = max_tool_calls
+        self.tool_calls = 0
+        self.limit_exceeded = False
         self.scenario = scenario
         self.state = copy.deepcopy(scenario["initial"])
         self.events = []
@@ -68,6 +77,10 @@ class World:
         self.incident = f"INC-{random.Random(seed).randrange(1000, 9999)}"
 
     def call(self, action: str, **params) -> Observation:
+        if self.tool_calls >= self.max_tool_calls:
+            self.limit_exceeded = True
+            raise ToolCallLimitError(f"Tool-call budget exhausted ({self.max_tool_calls})")
+        self.tool_calls += 1
         # Reject malformed state values before a write or a one-shot fault.
         # Otherwise a list/dict comment can crash final-state scoring outside
         # the adapter exception boundary, leaving no usable run report.
@@ -165,8 +178,8 @@ class RecoveryAgent:
             return True
         return False
 
-def run(scenario: dict, agent: Agent, seed: int = 42) -> dict:
-    world = World(scenario, seed)
+def run(scenario: dict, agent: Agent, seed: int = 42, *, max_tool_calls: int = 100) -> dict:
+    world = World(scenario, seed, max_tool_calls)
     error = None
     try:
         claimed = agent.run(world.call, copy.deepcopy(scenario["goal"]))
@@ -175,6 +188,11 @@ def run(scenario: dict, agent: Agent, seed: int = 42) -> dict:
     except Exception as exc:
         claimed = False
         error = {"type": type(exc).__name__, "message": str(exc)}
+    # An adapter cannot turn an exhausted budget into success by catching it.
+    if world.limit_exceeded:
+        claimed = False
+        error = {"type": "ToolCallLimitError",
+                 "message": f"Tool-call budget exhausted ({world.max_tool_calls})"}
     state, goal = world.state, scenario["goal"]
     count = state["comments"].count(goal["comment"])
     # Preserve both original and externally added comments, including multiplicity.
@@ -190,4 +208,4 @@ def run(scenario: dict, agent: Agent, seed: int = 42) -> dict:
         {"id": "preserve_comments", "pass": all(actual[k] >= v for k, v in required.items()), "expected": dict(required), "actual": dict(actual), "path": "final_state.comments"},
     ]
     success = error is None and all(x["pass"] for x in assertions)
-    return {"schema_version": 1, "scenario_id": scenario["id"], "scenario_sha256": hashlib.sha256(json.dumps(scenario, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(), "scenario_version": scenario["schema_version"], "title": scenario["title"], "description": scenario["description"], "fault": scenario["fault"], "seed": seed, "agent": agent.name, "baseline_type": getattr(agent, "kind", "custom local adapter; model provenance not verified"), "initial_state": copy.deepcopy(scenario["initial"]), "error": error, "claimed_complete": bool(claimed), "success": success, "false_completion": bool(claimed) and not success, "duplicate_comments": max(0, count - 1), "uncompleted_steps": int(state["status"] != goal["status"]) + int(count == 0), "assertions": assertions, "events": world.events, "final_state": copy.deepcopy(state)}
+    return {"max_tool_calls": world.max_tool_calls, "tool_calls": world.tool_calls, "schema_version": 1, "scenario_id": scenario["id"], "scenario_sha256": hashlib.sha256(json.dumps(scenario, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(), "scenario_version": scenario["schema_version"], "title": scenario["title"], "description": scenario["description"], "fault": scenario["fault"], "seed": seed, "agent": agent.name, "baseline_type": getattr(agent, "kind", "custom local adapter; model provenance not verified"), "initial_state": copy.deepcopy(scenario["initial"]), "error": error, "claimed_complete": bool(claimed), "success": success, "false_completion": bool(claimed) and not success, "duplicate_comments": max(0, count - 1), "uncompleted_steps": int(state["status"] != goal["status"]) + int(count == 0), "assertions": assertions, "events": world.events, "final_state": copy.deepcopy(state)}
