@@ -9,6 +9,7 @@ from pathlib import Path
 from .engine import load_scenario, run, NaiveAgent, RecoveryAgent
 from .report import render
 from .compare import compare, load_runs
+from .junit import render_junit
 
 def main():
     parser = argparse.ArgumentParser(description="Grade agent recovery against local synthetic state. Trusted adapters may use network or paid APIs.")
@@ -25,7 +26,10 @@ def main():
                         help="Positive per-case external process deadline in seconds (default: 30)")
     parser.add_argument("--baseline", type=Path, help="Saved single-adapter results.json")
     parser.add_argument("--candidate", type=Path, help="Matching candidate results.json")
+    parser.add_argument("--junit-xml", type=Path, help="Optional compare-only JUnit regression report; not adapter pass/fail")
     args = parser.parse_args()
+    if args.junit_xml is not None and args.command != "compare":
+        parser.error("--junit-xml is only supported with compare")
     if args.agent_command is not None and (args.command != "run" or not args.agent_command or args.agent is not None):
         parser.error("--agent-command requires run, an executable, and no --agent")
     if args.agent_timeout is not None and (args.agent_command is None or not math.isfinite(args.agent_timeout) or args.agent_timeout <= 0):
@@ -37,7 +41,14 @@ def main():
         if args.baseline is None or args.candidate is None or args.agent is not None:
             parser.error("compare requires --baseline and --candidate, and does not load --agent")
         try:
+            if args.junit_xml is not None:
+                for source in (args.baseline, args.candidate):
+                    if (args.junit_xml.resolve() == source.resolve() or
+                            (args.junit_xml.exists() and source.exists() and args.junit_xml.samefile(source))):
+                        raise ValueError("JUnit output must not overwrite a baseline or candidate report")
             comparison = compare(load_runs(args.baseline), load_runs(args.candidate))
+            if args.junit_xml is not None:
+                args.junit_xml.write_text(render_junit(comparison), encoding="utf-8")
         except (ValueError, OSError) as exc:
             parser.error(f"Cannot compare reports: {exc}")
         print(json.dumps(comparison, indent=2))

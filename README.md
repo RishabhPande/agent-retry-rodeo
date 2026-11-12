@@ -136,8 +136,30 @@ reports are rejected. Numeric overflow to infinity is rejected, including in nes
 `NaN`/`Infinity` numbers are rejected before comparison rather than silently
 choosing one conflicting value. Regenerate old reports with this version.
 
-The command only reads JSON and prints JSON; it does not load adapters, run
-scenarios, create a replay, or use the network. Fingerprints are not signatures:
+### Put regressions in your CI test report
+
+```bash
+retry-rodeo compare --baseline before/results.json --candidate after/results.json \
+  --junit-xml regression-tests.xml > comparison.json
+```
+
+The optional JUnit XML has one case per scenario and seed, with specific regression
+names in failing cases. CI tools that consume JUnit can display it alongside your
+other tests. JSON stdout and exit codes stay unchanged. Upload the XML even when
+comparison exits 1. Its parent directory must already exist. Invalid/incomparable
+inputs produce exit 2 without writing a new XML report; clear old artifacts before
+each run so a stale file cannot be mistaken for current evidence. Output cannot
+replace either input report, including through symlinks or hard links.
+
+**A passing XML case means no directional regression, not a successful adapter
+run.** Unchanged failures can pass. The XML includes only scenario IDs, seeds,
+regression names and this scope, not traces, commands or adapter exception details.
+Synthetic fixtures are not production or live-model measurements. Review IDs before
+publishing the artifact. This is a report export, not an installed CI integration.
+
+By default the command only reads JSON and prints JSON. With `--junit-xml`, it also
+writes the explicitly named file. It does not load adapters, run scenarios, create
+a replay, or use the network. Fingerprints are not signatures:
 hand-edited reports can lie, and simulator/runner changes also require a fresh
 baseline. These are directional checks on synthetic fixtures, not proof of
 production reliability, model provenance, or statistical improvement. Tool-call
