@@ -1,6 +1,8 @@
 from __future__ import annotations
 import argparse
 import json
+import math
+from .process_agent import ProcessAgent
 import importlib.util
 import yaml
 from pathlib import Path
@@ -9,7 +11,7 @@ from .report import render
 from .compare import compare, load_runs
 
 def main():
-    parser = argparse.ArgumentParser(description="Run local synthetic recovery scenarios. No network or API keys.")
+    parser = argparse.ArgumentParser(description="Grade agent recovery against local synthetic state. Trusted adapters may use network or paid APIs.")
     parser.add_argument("command", choices=["demo", "validate", "run", "compare"])
     parser.add_argument("--scenarios", type=Path, default=Path("scenarios"), help="Scenario folder, relative to current directory")
     parser.add_argument("--output", type=Path, default=Path("rodeo-output"))
@@ -17,9 +19,17 @@ def main():
     parser.add_argument("--max-tool-calls", type=int, default=None,
                         help="Positive per-run tool-call budget for run (default: 100); not a timeout or sandbox")
     parser.add_argument("--agent", type=Path, help="Trusted local Python file exporting create_agent(); executes arbitrary code")
+    parser.add_argument("--agent-command", nargs=argparse.REMAINDER,
+                        help="Trusted external executable and arguments; must be the last option")
+    parser.add_argument("--agent-timeout", type=float, default=None,
+                        help="Positive per-case external process deadline in seconds (default: 30)")
     parser.add_argument("--baseline", type=Path, help="Saved single-adapter results.json")
     parser.add_argument("--candidate", type=Path, help="Matching candidate results.json")
     args = parser.parse_args()
+    if args.agent_command is not None and (args.command != "run" or not args.agent_command or args.agent is not None):
+        parser.error("--agent-command requires run, an executable, and no --agent")
+    if args.agent_timeout is not None and (args.agent_command is None or not math.isfinite(args.agent_timeout) or args.agent_timeout <= 0):
+        parser.error("--agent-timeout requires --agent-command and a positive finite value")
     if args.max_tool_calls is not None:
         if args.command != "run" or args.max_tool_calls < 1:
             parser.error("--max-tool-calls requires run and a positive integer")
@@ -36,8 +46,8 @@ def main():
         return
     if args.baseline is not None or args.candidate is not None:
         parser.error("--baseline and --candidate are only supported with compare")
-    if args.command == "run" and args.agent is None:
-        parser.error("run requires --agent path/to/agent.py")
+    if args.command == "run" and args.agent is None and args.agent_command is None:
+        parser.error("run requires --agent path/to/agent.py or --agent-command executable args...")
     if args.command != "run" and args.agent is not None:
         parser.error("--agent is only supported with run")
     paths = sorted(args.scenarios.glob("*.yaml"))
@@ -56,7 +66,9 @@ def main():
         print(f"Validated {len(scenarios)} scenarios")
         return
     factory = None
-    if args.command == "run":
+    if args.agent_command is not None:
+        factory = lambda: ProcessAgent(args.agent_command, args.agent_timeout or 30.0)
+    elif args.command == "run":
         try:
             spec = importlib.util.spec_from_file_location("rodeo_user_agent", args.agent.resolve())
             if spec is None or spec.loader is None:
