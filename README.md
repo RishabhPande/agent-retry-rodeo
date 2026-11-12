@@ -8,7 +8,7 @@ A local test range for AI agent recovery. Watch a naive strategy confidently fai
 
 [Try the public replay](https://rishabhpande.github.io/agent-retry-rodeo/) - eight scripted runs, no login or API keys.
 
-**Offline runtime. No API keys. Synthetic data only.** Python 3.10+.
+**Offline demo. No API keys for the built-in examples. Synthetic ticket state.** Python 3.10+. External agents may use network access or paid APIs you configure.
 
 ## Try it in a minute
 
@@ -39,12 +39,12 @@ Both built-in agents are **scripted teaching baselines, not LLMs**. An eight-run
 ## Add a scenario without changing the engine
 
 1. Copy a YAML file from `scenarios/` and give it a unique `id`.
-2. Use one of `lost_ack`, `partial_failure`, `stale_version`, or `invalid_call`.
+2. Use a built-in fault, or schema v2 with a declarative custom fault schedule.
 3. Set initial ticket state and the target status/comment. Keep the documented assertions.
 4. Run `retry-rodeo validate` and `python -m unittest discover -s tests -v`.
 5. Run `retry-rodeo demo` and inspect the evidence. Open a PR with the scenario and an explanation.
 
-See [the scenario guide](docs/scenarios.md). Adding a new *fault primitive* requires engine code and tests; YAML can combine task fixtures with existing faults, not run arbitrary scripts. YAML uses safe loading and a strict field schema, with a 64 KB size cap. Community packs remain untrusted input: review them before use. This is not an execution sandbox for arbitrary contributor code.
+See [the scenario guide](docs/scenarios.md). Schema v2 schedules before-call failures and after-call acknowledgement loss on named tool occurrences. New operations or other *fault primitives* still require engine code and tests; YAML does not run arbitrary scripts. YAML uses safe loading and a strict field schema, with a 64 KB size cap. Community packs remain untrusted input: review them before use. This is not an execution sandbox for arbitrary contributor code.
 
 ## Bring your agent
 
@@ -55,6 +55,39 @@ python -m agent_retry_rodeo.cli run --agent examples/my_agent.py --output my-run
 Copy `examples/my_agent.py`. Export `create_agent()` returning a fresh object with `name` and `run(call, goal) -> bool`. The agent receives only tool observations and its goal. Its completion claim is checked against persisted simulator state. Custom names and zero-tool-call runs work in the same replay. Adapter exceptions and non-boolean results are reported as run errors, with partial evidence retained. Tool writes require string `text` and `status` values; malformed values fail before changing state and are reported as adapter errors. A custom run exits 1 if any case fails, so it can gate CI.
 
 This loads explicitly chosen **trusted local Python code**. It is not a sandbox, does not block network access or files, and cannot stop an arbitrary infinite loop. Do not load strangers' adapters. No model connector or paid calls are included. Model provenance is not inferred from an adapter name.
+
+### Run an external agent process
+
+Connect an agent written in any language through a small JSON-lines bridge. The
+included client is **scripted**, so this command makes no model calls:
+
+```bash
+retry-rodeo run --agent-timeout 30 --max-tool-calls 40 --output process-run \
+  --agent-command python examples/process_agent.py
+retry-rodeo run --scenarios examples/custom-faults --output fault-run \
+  --agent-command python examples/process_agent.py
+```
+
+`--agent-command` must be last; everything after it is the executable argument
+list, with no shell expansion. Replace the client's decision loop with your
+agent's model or framework calls and map its tools to the protocol. Your agent
+receives a goal and tool observations, not evaluator assertions or hidden state.
+The parent process grades actual simulator state even if the agent claims done.
+A fresh child process runs per case. See the [protocol guide](docs/external-agents.md).
+
+The parent enforces a wall-clock deadline (30 seconds by default), a tool-call
+budget, 64 KB per output frame, and a 4 MB combined stdout/stderr budget per case.
+On POSIX, it terminates the child's process group when a case finishes or fails.
+Timeouts, invalid output and crashes retain partial tool evidence and fail the
+run. These limits apply to the external command transport, not `--agent` imports.
+
+**Not a security sandbox.** Chosen commands inherit your environment, working
+directory and OS permissions; they can access files, network, secrets and paid
+APIs. Use only trusted code, synthetic data and your own cost controls. Commands,
+credentials and stderr logs are not copied into reports. Review exception and
+tool data before sharing evidence. Model identity and reproducibility are not
+verified, and no live-model measurement is included. This remains a synthetic
+ticket environment, not a proxy for arbitrary production applications.
 
 ### Bound tool retries
 
@@ -140,6 +173,8 @@ The trace is generated from the real `lost-ack` fixture at seed 42, not hand-ent
 Agent failure testing and chaos engineering already exist. This project makes a small slice approachable through offline, forkable fixtures and state-grounded visual replays. It does **not** claim a new benchmark methodology or guaranteed virality.
 
 Relevant projects: [MCP Chaos](https://github.com/ajinb/mcp-chaos), [Commit-Time Action Validity Benchmark](https://github.com/Harimay23/cav-bench), [Agent Gauntlet](https://github.com/abhimaddi/agent-gauntlet), and [Deep Agents Lifecycle](https://github.com/fnusatvik07/deep-agents), which already uses “Agent Failure Arcade” for a tutorial feature. Our original working name was changed to avoid that overlap. We focus on local operational failures, not live prompt-injection duels.
+
+Other tools already address these areas: [llmdrill](https://github.com/hamarshehmhmd/llmdrill) injects provider outages and grades recovery; [Tenro](https://github.com/tenro-ai/tenro-python) simulates agent and tool calls; [AgentSkeptic](https://github.com/jwekavanagh/agentskeptic) and [ScopeHaven](https://github.com/YusefSyed/scopehaven-oss) check application state; [OrcaReplay](https://github.com/Continuum-AI-Corp/OrcaReplay) and [flight-recorder](https://github.com/xag/flight-recorder) offer recording/replay. The external protocol and custom schedules here are an incremental usability improvement, not a claim of unique coverage or equivalence to those projects.
 
 ## Contribute
 

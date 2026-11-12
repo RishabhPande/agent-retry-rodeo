@@ -34,9 +34,27 @@ def load_scenario(path: Path) -> dict:
     if path.stat().st_size > 64_000:
         raise ValueError("Scenario exceeds 64 KB")
     data = yaml.load(path.read_text(encoding="utf-8"), Loader=ScenarioLoader)
-    if not isinstance(data, dict) or set(data) != FIELDS:
+    if not isinstance(data, dict) or set(data) not in (FIELDS, FIELDS | {"fault_plan"}):
         raise ValueError("Scenario must contain exactly the documented fields")
-    if type(data["schema_version"]) is not int or data["schema_version"] != 1 or not isinstance(data["fault"], str) or data["fault"] not in FAULTS:
+    if type(data["schema_version"]) is not int or not isinstance(data["fault"], str):
+        raise ValueError("Unsupported schema or fault")
+    if data["schema_version"] == 2 and data["fault"] == "custom":
+        plan = data.get("fault_plan")
+        if not isinstance(plan, list) or not 1 <= len(plan) <= 64:
+            raise ValueError("Custom fault_plan requires 1 to 64 rules")
+        seen = set()
+        for rule in plan:
+            if not isinstance(rule, dict) or set(rule) != {"action", "occurrence", "timing", "error"}:
+                raise ValueError("Fault rule requires action, occurrence, timing, error")
+            if rule["action"] not in ("read_ticket", "append_comment", "set_status") or type(rule["occurrence"]) is not int or not 1 <= rule["occurrence"] <= 10000:
+                raise ValueError("Invalid fault action or occurrence")
+            if rule["timing"] not in ("before", "after") or not isinstance(rule["error"], str) or not rule["error"].strip() or len(rule["error"]) > 200:
+                raise ValueError("Invalid fault timing or error")
+            key = (rule["action"], rule["occurrence"])
+            if key in seen:
+                raise ValueError("Only one fault rule may target each action occurrence")
+            seen.add(key)
+    elif data["schema_version"] != 1 or data["fault"] not in FAULTS or "fault_plan" in data:
         raise ValueError("Unsupported schema or fault")
     for field in ("id", "title", "description"):
         if not isinstance(data[field], str) or not data[field].strip():
@@ -74,6 +92,7 @@ class World:
         self.state = copy.deepcopy(scenario["initial"])
         self.events = []
         self.fault_used = False
+        self.action_counts = {}
         self.incident = f"INC-{random.Random(seed).randrange(1000, 9999)}"
 
     def call(self, action: str, **params) -> Observation:
@@ -90,7 +109,18 @@ class World:
             raise ValueError("set_status requires status to be a string")
         before = copy.deepcopy(self.state)
         fault = self.scenario["fault"]
+        self.action_counts[action] = self.action_counts.get(action, 0) + 1
+        rule = next((r for r in self.scenario.get("fault_plan", [])
+                     if r["action"] == action and r["occurrence"] == self.action_counts[action]), None)
         label = None
+        if rule and rule["timing"] == "before":
+            self.fault_used = True
+            out = Observation(False, {"error": rule["error"]})
+            self.events.append({"step": len(self.events) + 1, "action": action, "params": params,
+                                "observation": {"ok": out.ok, **out.result},
+                                "fault": f"Custom before fault: {rule['error']}",
+                                "before": before, "after": copy.deepcopy(self.state)})
+            return out
         if action == "read_ticket":
             out = Observation(True, copy.deepcopy(self.state))
         elif action == "append_comment":
@@ -138,6 +168,10 @@ class World:
                     out = Observation(True, {"status_updated": True})
         else:
             raise ValueError(f"Unknown action: {action}")
+        if rule and rule["timing"] == "after":
+            self.fault_used = True
+            label = f"Custom after fault: {rule['error']}"
+            out = Observation(False, {"error": rule["error"], "committed": "unknown"})
         self.events.append({"step": len(self.events) + 1, "action": action, "params": params, "observation": {"ok": out.ok, **out.result}, "fault": label, "before": before, "after": copy.deepcopy(self.state)})
         return out
 
@@ -208,4 +242,4 @@ def run(scenario: dict, agent: Agent, seed: int = 42, *, max_tool_calls: int = 1
         {"id": "preserve_comments", "pass": all(actual[k] >= v for k, v in required.items()), "expected": dict(required), "actual": dict(actual), "path": "final_state.comments"},
     ]
     success = error is None and all(x["pass"] for x in assertions)
-    return {"max_tool_calls": world.max_tool_calls, "tool_calls": world.tool_calls, "schema_version": 1, "scenario_id": scenario["id"], "scenario_sha256": hashlib.sha256(json.dumps(scenario, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(), "scenario_version": scenario["schema_version"], "title": scenario["title"], "description": scenario["description"], "fault": scenario["fault"], "seed": seed, "agent": agent.name, "baseline_type": getattr(agent, "kind", "custom local adapter; model provenance not verified"), "initial_state": copy.deepcopy(scenario["initial"]), "error": error, "claimed_complete": bool(claimed), "success": success, "false_completion": bool(claimed) and not success, "duplicate_comments": max(0, count - 1), "uncompleted_steps": int(state["status"] != goal["status"]) + int(count == 0), "assertions": assertions, "events": world.events, "final_state": copy.deepcopy(state)}
+    return {"fault_plan": copy.deepcopy(scenario.get("fault_plan", [])), "max_tool_calls": world.max_tool_calls, "tool_calls": world.tool_calls, "schema_version": 1, "scenario_id": scenario["id"], "scenario_sha256": hashlib.sha256(json.dumps(scenario, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(), "scenario_version": scenario["schema_version"], "title": scenario["title"], "description": scenario["description"], "fault": scenario["fault"], "seed": seed, "agent": agent.name, "baseline_type": getattr(agent, "kind", "custom local adapter; model provenance not verified"), "initial_state": copy.deepcopy(scenario["initial"]), "error": error, "claimed_complete": bool(claimed), "success": success, "false_completion": bool(claimed) and not success, "duplicate_comments": max(0, count - 1), "uncompleted_steps": int(state["status"] != goal["status"]) + int(count == 0), "assertions": assertions, "events": world.events, "final_state": copy.deepcopy(state)}
