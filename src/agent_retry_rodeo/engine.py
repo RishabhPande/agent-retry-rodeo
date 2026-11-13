@@ -107,6 +107,9 @@ class World:
             raise ValueError("append_comment requires text to be a string")
         if action == "set_status" and not isinstance(params.get("status"), str):
             raise ValueError("set_status requires status to be a string")
+        if action == "set_status" and (
+                type(params.get("expected_version")) is not int or params["expected_version"] < 1):
+            raise ValueError("set_status requires expected_version to be a positive integer")
         before = copy.deepcopy(self.state)
         fault = self.scenario["fault"]
         self.action_counts[action] = self.action_counts.get(action, 0) + 1
