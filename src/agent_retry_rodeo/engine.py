@@ -100,6 +100,13 @@ class World:
             self.limit_exceeded = True
             raise ToolCallLimitError(f"Tool-call budget exhausted ({self.max_tool_calls})")
         self.tool_calls += 1
+        fields = {"read_ticket": set(), "append_comment": {"text"},
+                  "set_status": {"status", "expected_version"}}
+        if not isinstance(action, str) or action not in fields:
+            raise ValueError(f"Unknown action: {action}")
+        if set(params) - fields[action]:
+            expected = ", ".join(sorted(fields[action])) or "no parameters"
+            raise ValueError(f"{action} requires exactly these parameters: {expected}")
         # Reject malformed state values before a write or a one-shot fault.
         # Otherwise a list/dict comment can crash final-state scoring outside
         # the adapter exception boundary, leaving no usable run report.
