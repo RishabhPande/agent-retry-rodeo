@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import math
+from numbers import Real
 import os
 import selectors
 import signal
@@ -47,9 +48,15 @@ class ProcessAgent:
     kind = 'external command; model provenance not verified'
 
     def __init__(self, command, timeout=30.0):
-        if not command or not all(isinstance(x, str) and x for x in command):
-            raise ValueError('Command must be a nonempty argument list')
-        if not math.isfinite(timeout) or timeout <= 0:
+        if (not isinstance(command, (list, tuple)) or not command
+                or not all(isinstance(x, str) and x and '\0' not in x for x in command)):
+            raise ValueError('Command must be a nonempty argument list or tuple of nonempty, NUL-free strings')
+        try:
+            valid_timeout = (not isinstance(timeout, bool) and isinstance(timeout, Real)
+                             and math.isfinite(timeout) and timeout > 0)
+        except (OverflowError, TypeError):
+            valid_timeout = False
+        if not valid_timeout:
             raise ValueError('Agent timeout must be positive and finite')
         if os.name != 'posix':
             raise ValueError('External command transport currently requires POSIX')
