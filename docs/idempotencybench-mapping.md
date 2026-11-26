@@ -2,6 +2,8 @@
 
 Script: `examples/duplicate_count_mapping.py`. Test: `tests/test_duplicate_count_mapping.py` (set `IDEMPOTENCYBENCH` to a checkout to also cross-check against its `Ledger`).
 
+Target harness: [IdempotencyBench](https://github.com/gssanjana4/idempotencybench).
+
 Scripted baselines, not LLM results. Not a claim that the two harnesses are equivalent.
 
 | idempotencybench needs | Retry Rodeo source |
